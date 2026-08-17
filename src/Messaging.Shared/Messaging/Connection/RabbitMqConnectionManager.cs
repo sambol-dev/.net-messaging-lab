@@ -1,9 +1,8 @@
-using Messaging.Api.Configuration;
-using Messaging.Api.Messaging.Interfaces;
-using Microsoft.Extensions.Options;
+using Messaging.Shared.Messaging.Configuration;
 using RabbitMQ.Client;
+using Microsoft.Extensions.Options;
 
-namespace Messaging.Api.Messaging;
+namespace Messaging.Shared.Messaging.Connection;
 
 public sealed class RabbitMqConnectionManager : IRabbitMqConnectionManager
 {

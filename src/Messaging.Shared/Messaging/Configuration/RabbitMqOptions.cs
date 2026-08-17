@@ -1,4 +1,4 @@
-namespace Messaging.Api.Configuration;
+namespace Messaging.Shared.Messaging.Configuration;
 
 public sealed class RabbitMqOptions
 {
