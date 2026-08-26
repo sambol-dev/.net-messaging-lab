@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Messaging.Api.Messaging.Topology;
+using Messaging.Shared.Messaging.Topology;
 using Messaging.Shared.Messaging.Channel;
 using RabbitMQ.Client;
 

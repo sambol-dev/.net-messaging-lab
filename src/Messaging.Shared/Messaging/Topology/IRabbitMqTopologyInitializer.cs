@@ -1,4 +1,4 @@
-namespace Messaging.Api.Messaging.Topology;
+namespace Messaging.Shared.Messaging.Topology;
 
 public interface IRabbitMqTopologyInitializer
 {

@@ -1,9 +1,8 @@
 using Messaging.Shared.Messaging.Configuration;
-using Messaging.Api.Messaging.Bootstrap;
 using Messaging.Shared.Messaging.Channel;
 using Messaging.Shared.Messaging.Connection;
 using Messaging.Api.Messaging.Publisher;
-using Messaging.Api.Messaging.Topology;
+using Messaging.Shared.Messaging.Topology;
 
 namespace Messaging.Api.Extensions;
 
@@ -22,7 +21,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
         services.AddSingleton<IRabbitMqTopologyInitializer,RabbitMqTopologyInitializer>();
         
-        services.AddHostedService<RabbitMqBootstrapper>();
         return services;
     }
 }

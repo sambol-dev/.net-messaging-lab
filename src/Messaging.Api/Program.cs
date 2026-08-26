@@ -1,6 +1,6 @@
 using Messaging.Shared.Extensions;
 using Messaging.Api.Messaging.Publisher;
-using Messaging.Api.Messaging.Topology;
+using Messaging.Shared.Messaging.Topology;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.Messaging.Configuration;
 
@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 //RabbitMQ
 builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
 builder.Services.AddRabbitMqInfrastructure();
+
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
