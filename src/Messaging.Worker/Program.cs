@@ -18,7 +18,6 @@ builder.Services.AddSingleton<IOrderCreatedConsumer, OrderCreatedConsumer>();
 builder.Services.AddSingleton<IOrderCreatedHandler, OrderCreatedHandler>();
 
 
-
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

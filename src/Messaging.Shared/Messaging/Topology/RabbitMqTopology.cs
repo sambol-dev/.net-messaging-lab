@@ -12,7 +12,6 @@ public static class RabbitMqTopology
     public const string RetryExchange = "orders.retry.exchange";
     public const string RetryQueue = "orders.created.retry";
     public const string RetryRoutingKey = "orders.created.retry";
-    public const int RetryTtlMiliseconds = 5000;
     public const int MaxRetryAttempts = 3;
     public const string RetryCountReader = "x-retry-count";
 }

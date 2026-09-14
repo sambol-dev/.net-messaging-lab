@@ -32,8 +32,8 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         };
 
         await channel.BasicPublishAsync(
-            exchange: RabbitMqTopology.OrdersExchange,
-            routingKey: RabbitMqTopology.OrdersRoutingKey,
+            exchange: exchange,
+            routingKey: routingkey,
             mandatory: false,
             basicProperties: basicProperties,
             body: body,
@@ -42,7 +42,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
 
         _logger.LogInformation(
             "Mensagem publicada na Exchange '{Exchange}' com Routing Key '{RoutingKey}'.",
-            RabbitMqTopology.OrdersExchange,
-            RabbitMqTopology.OrdersRoutingKey);
+            exchange,
+            routingkey);
     }
 }

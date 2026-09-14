@@ -1,8 +1,8 @@
-using System.Reflection;
 using System.Text.Json;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.Messaging.Channel;
 using Messaging.Shared.Messaging.Topology;
+using Messaging.Worker.Exceptions;
 using Messaging.Worker.Handlers;
 using Messaging.Worker.Messaging.Retry;
 using RabbitMQ.Client;
@@ -59,23 +59,11 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
                 }
             }
 
-
-            var retryCount = 0;
-
-            if (args.BasicProperties.Headers is not null && 
-                args.BasicProperties.Headers.TryGetValue(RabbitMqTopology.RetryCountReader, out var retryHeader))
-            {
-                retryCount = Convert.ToInt32(retryHeader);
-            }
+            var retryCount = GetRetryCount(args.BasicProperties);
 
             try
             {      
-                var orderCreated = JsonSerializer.Deserialize<OrderCreated>(body);
-
-                if (orderCreated is null)
-                {
-                    throw new InvalidOperationException("Não foi possível desserializar a mensagem OrderCreated");
-                }
+                var orderCreated = DeserializeMessage(body);
 
                 _logger.LogInformation(
                     "OrderCreated recebida. " +
@@ -105,7 +93,7 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
                     args.DeliveryTag,
                     orderCreated.OrderId);      
             }
-            catch (Exception ex)
+            catch (TransientException ex)
             {
                 _logger.LogError(
                     ex,
@@ -118,10 +106,12 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
                 if (_retryPolicy.ShouldRetry(retryCount))
                 {
                     var nextRetryCount = _retryPolicy.GetNextRetryCount(retryCount);
+                    var retryDelay = _retryPolicy.GetRetryDelay(retryCount);
 
                     await _retryPublisher.PublishAsync(
                         body,
                         nextRetryCount,
+                        retryDelay,
                         cancellationToken);
 
                     await _channel.BasicAckAsync(
@@ -131,8 +121,10 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
                     _logger.LogWarning(
                         "Mensagem enviada para retry. " +
                         "RetryCount: {RetryCount}, " +
+                        "RetryDelay: {RetryDelay}, " +
                         "DeliveryTag: {DeliveryTag}",
                         nextRetryCount,
+                        retryDelay.TotalMilliseconds,
                         args.DeliveryTag);
                 }
                 else
@@ -150,8 +142,53 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
                         multiple: false,
                         requeue: false);
                 }
+            }
+            catch(RetryPublishException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Falha ao publicar mensagem para retry. " +
+                    "DeliveryTag: {DeliveryTag}" +
+                    "A mensagem será reprocessada",
+                    args.DeliveryTag
+                );
 
-            }  
+                await _channel.BasicNackAsync(
+                    deliveryTag: args.DeliveryTag,
+                    multiple: false,
+                    requeue: true);
+            }
+            catch(PermanentException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Erro permanente ao processar OrderCreated. " +
+                    "Enviando mensagem diretamente para DLQ. " +
+                    "DeliveryTag: {DeliveryTag}, " +
+                    "RetryCount: {RetryCount}",
+                    args.DeliveryTag,
+                    retryCount);
+
+                await _channel.BasicNackAsync(
+                    deliveryTag: args.DeliveryTag,
+                    multiple: false,
+                    requeue: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Erro não classificado ao processar OrderCreated. " +
+                    "DeliveryTag: {DeliveryTag}, " +
+                    "RetryCount: {RetryCount}",
+                    args.DeliveryTag,
+                    retryCount);
+                
+                await _channel.BasicNackAsync(
+                    deliveryTag: args.DeliveryTag,
+                    multiple: false,
+                    requeue: false);
+            }
         };
 
         var consumerTag = await _channel.BasicConsumeAsync(
@@ -183,5 +220,36 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
 
             _channel = null;
         }
+    }
+    private OrderCreated DeserializeMessage(byte[] body)
+    {
+        try
+        {
+            var orderCreated = JsonSerializer.Deserialize<OrderCreated>(body);
+
+            if (orderCreated is null)
+            {
+                throw new PermanentException("Não foi possível desserializar a mensagem OrderCreated");
+            }
+
+            return orderCreated;
+        }
+        catch (JsonException ex)
+        {
+            throw new PermanentException(
+                "A mensagem OrderCreated contém um Json inválido",
+                ex);
+        }
+    }
+
+    private int GetRetryCount(IReadOnlyBasicProperties properties)
+    {
+        if (properties.Headers is not null && 
+            properties.Headers.TryGetValue(RabbitMqTopology.RetryCountReader, out var retryHeader))
+        {
+            return Convert.ToInt32(retryHeader);
+        }
+
+        return 0;
     }
 }

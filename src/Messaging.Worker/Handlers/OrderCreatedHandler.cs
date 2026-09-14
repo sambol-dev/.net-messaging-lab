@@ -1,4 +1,5 @@
 using Messaging.Shared.Contracts;
+using Messaging.Worker.Exceptions;
 
 namespace Messaging.Worker.Handlers;
 
@@ -12,9 +13,7 @@ public class OrderCreatedHandler(
         logger.LogInformation(
         "INICIANDO processamento. OrderId: {OrderId}",
         message.OrderId);
-
-        //throw new InvalidOperationException("se foi");
-
+        
         logger.LogInformation(
             "FINALIZANDO processamento. OrderId: {OrderId}",
             message.OrderId);
@@ -29,5 +28,6 @@ public class OrderCreatedHandler(
             message.Total);
         
         await Task.CompletedTask;
+
     }
 }

@@ -81,7 +81,6 @@ public class RabbitMqTopologyInitializer : IRabbitMqTopologyInitializer
 
         var retryArguments = new Dictionary<string, object?>
         {
-            ["x-message-ttl"] = RabbitMqTopology.RetryTtlMiliseconds,
             ["x-dead-letter-exchange"] = RabbitMqTopology.OrdersExchange,
             ["x-dead-letter-routing-key"] = RabbitMqTopology.OrdersRoutingKey
         };
