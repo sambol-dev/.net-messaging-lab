@@ -1,5 +1,27 @@
+# Build
 bin/
 obj/
+
+# Visual Studio / VS Code
 .vs/
+.vscode/
+
+# .NET
 *.user
 *.suo
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Local configuration
+appsettings.Local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local application settings
+src/Messaging.Worker/appsettings.json
+src/Messaging.Api/appsettings.json

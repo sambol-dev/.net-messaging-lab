@@ -1,10 +1,8 @@
-using System.Text.Json;
-using Messaging.Shared.Contracts;
 using Messaging.Shared.Messaging.Channel;
 using Messaging.Shared.Messaging.Topology;
 using Messaging.Worker.Exceptions;
-using Messaging.Worker.Handlers;
 using Messaging.Worker.Messaging.Retry;
+using Messaging.Worker.Processors;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 namespace Messaging.Worker.Consumers;
@@ -12,20 +10,20 @@ namespace Messaging.Worker.Consumers;
 public class OrderCreatedConsumer : IOrderCreatedConsumer
 {
     private readonly IRabbitMqChannelManager _channelManager;
-    private readonly IOrderCreatedHandler _handler;
     private readonly ILogger<OrderCreatedConsumer> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IRabbitMqRetryPublisher _retryPublisher;
     private readonly IRetryPolicy _retryPolicy;
     private IChannel? _channel;
     public OrderCreatedConsumer(
         IRabbitMqChannelManager channelManager,
-        IOrderCreatedHandler handler,
+        IServiceScopeFactory scopeFactory,
         IRabbitMqRetryPublisher retryPublisher,
         IRetryPolicy retryPolicy,
         ILogger<OrderCreatedConsumer> logger)
     {
         _channelManager = channelManager;
-        _handler = handler;
+        _scopeFactory = scopeFactory;
         _retryPublisher = retryPublisher;
         _retryPolicy = retryPolicy;
         _logger = logger;
@@ -62,24 +60,14 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
             var retryCount = GetRetryCount(args.BasicProperties);
 
             try
-            {      
-                var orderCreated = DeserializeMessage(body);
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
 
-                _logger.LogInformation(
-                    "OrderCreated recebida. " +
-                    "ProcessId> {ProcessId}, " +
-                    "DeliveryTag: {DeliveryTag}, " +
-                    "Redelivered: {Redelivered}, " +
-                    "OrderId: {OrderId}, " +
-                    "Total: {Total}",
-                    Environment.ProcessId,
-                    args.DeliveryTag,
-                    args.Redelivered,
-                    orderCreated.OrderId,
-                    orderCreated.Total);
-
-                await _handler.HandleAsync(
-                    orderCreated, 
+                var processor = scope.ServiceProvider
+                    .GetRequiredService<IOrderCreatedMessageProcessor>();
+                
+                await processor.ProcessAsync(
+                    body,
                     cancellationToken);
 
                 await _channel.BasicAckAsync(
@@ -88,10 +76,8 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
 
                 _logger.LogInformation(
                     "ACK enviado para OrderCreated. " +
-                    "DeliveryTag: {DeliveryTag}, " +
-                    "OrderId: {OrderId}",
-                    args.DeliveryTag,
-                    orderCreated.OrderId);      
+                    "DeliveryTag: {DeliveryTag}",
+                    args.DeliveryTag);      
             }
             catch (TransientException ex)
             {
@@ -219,26 +205,6 @@ public class OrderCreatedConsumer : IOrderCreatedConsumer
             await _channel.DisposeAsync();
 
             _channel = null;
-        }
-    }
-    private OrderCreated DeserializeMessage(byte[] body)
-    {
-        try
-        {
-            var orderCreated = JsonSerializer.Deserialize<OrderCreated>(body);
-
-            if (orderCreated is null)
-            {
-                throw new PermanentException("Não foi possível desserializar a mensagem OrderCreated");
-            }
-
-            return orderCreated;
-        }
-        catch (JsonException ex)
-        {
-            throw new PermanentException(
-                "A mensagem OrderCreated contém um Json inválido",
-                ex);
         }
     }
 

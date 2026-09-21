@@ -1,21 +1,46 @@
-# DotNetMessagingLab
+# .NET Messaging Lab
 
-Laboratório de estudos sobre mensageria utilizando .NET 10 e RabbitMQ.
+Laboratório prático de mensageria assíncrona com .NET 10 e RabbitMQ.
 
-## Objetivos
+O objetivo do projeto é estudar, de forma prática, padrões e mecanismos comuns em sistemas distribuídos baseados em mensagens.
 
-- Aprender RabbitMQ do zero
-- Entender o protocolo AMQP
-- Construir um Publisher
-- Construir um Consumer
-- Implementar ACK/NACK
-- Implementar Retry
-- Implementar Dead Letter Queue
-- Evoluir para Event Driven Architecture
-- Aplicar boas práticas de arquitetura em .NET
+## Stack
 
-## Filosofia
+- .NET 10
+- C# 
+- RabbitMQ 4.x
+- RabbitMQ.Client 7.2.1
+- Entity Framework Core 10
+- SQLite
+- xUnit
+- Debian Linux
 
-Cada commit adiciona apenas um conceito novo.
+## Arquitetura
 
-O objetivo é compreender profundamente como a mensageria funciona antes de utilizar abstrações e frameworks.
+```text
+                    ┌──────────────────┐
+                    │  Messaging.Api   │
+                    │    Publisher     │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    orders.exchange
+                             │
+                             ▼
+                    orders.created
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ OrderCreated     │
+                    │    Consumer      │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Processor     │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ▼                 ▼
+               Idempotency         Handler
+                 SQLite

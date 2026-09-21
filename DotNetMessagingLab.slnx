@@ -4,4 +4,7 @@
     <Project Path="src/Messaging.Worker/Messaging.Worker.csproj" />
     <Project Path="src/Messaging.Shared/Messaging.Shared.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Messaging.Worker.Tests/Messaging.Worker.Tests.csproj" />
+  </Folder>
 </Solution>
